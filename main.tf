@@ -10,7 +10,10 @@ locals {
 
 ## Amazon VPC
 resource "aws_vpc" "main" {
-  cidr_block = var.main_vpc_cidr
+  cidr_block           = var.main_vpc_cidr
+  enable_dns_support   = true
+  enable_dns_hostnames = true
+
   tags = {
     "Name"                                        = local.vpc_name,
     "kubernetes.io/cluster/${local.cluster_name}" = "shared",
@@ -192,4 +195,15 @@ resource "aws_route_table_association" "private-a-association" {
 resource "aws_route_table_association" "private-b-association" {
   subnet_id      = aws_subnet.private-subnet-b.id
   route_table_id = aws_route_table.private-route-b.id
+}
+
+# Create a Route 53 zone for DNS support inside the VPC
+resource "aws_route53_zone" "private-zone" {
+  # AWS requires a lowercase name
+  name          = "${var.env_name}.${var.vpc_name}-ejr.com"
+  force_destroy = true
+
+  vpc {
+    vpc_id = aws_vpc.main.id
+  }
 }
